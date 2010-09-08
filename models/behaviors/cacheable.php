@@ -43,35 +43,60 @@ class CacheableBehavior extends ModelBehavior {
  * @access public
  */
 	function setup(&$model, $config = array()) {
-
+		$defaults = array(
+			'engine' => 'File',
+		);
+		$this->settings[$model->name] = array_merge($defaults, $config);
 	}
 
 
+	/**
+	 * Checks the cache for query results, if none are found a new query is made
+	 * and the results are stored to a unique key for the query. Also works with
+	 * complex operations by using Model methods called cache<QueryName>($options)
+	 *
+	 * @param string $model 
+	 * @param string $type 
+	 * @param string $query 
+	 * @param string $options 
+	 * @return void
+	 * @author Dean Sofer
+	 */
 	public function cache(&$model, $type, $query = array(), $options = array()) {
 		$options = array_merge(array(
-			'duration' => '999 years',
+			'duration' => '10 years',
 			'update' => false,
 		), $options);
+		
+		$this->__config($model, $type, $options['duration']);
+		
 		$key = Security::hash(serialize($query));
-		Cache::config('cacheable', array(
-			'engine' => 'File',
-			'path' => CACHE . 'cacheable' . DS . $model->name . DS,
-			'duration' => $options['duration'],
-		    'prefix' => 'cake_query_',
-		));
+		
 		if ($options['update']) {
-			Cache::delete($type . '.' . $key, 'cacheable');
+			Cache::delete($key, 'cacheable');
 		}
 		
-		if (!$data = Cache::read($type . '.' . $key, 'cacheable')) {
+		if (!$data = Cache::read($key)) {
 			if (method_exists($model, 'cache' . $type)) {
 				$data = call_user_func_array('cache' . $type, $query);
 			} else {
 				$data = $model->find($type, $query);
 			}
-			Cache::write($type . '.' . $key, $data, 'cacheable');
+			Cache::write($key, $data, 'cacheable');
 		}
 		return $data;
+	}
+	
+	private function __config(&$model, $type, $duration = '10 years') {
+		if (!is_dir(CACHE . 'cacheable')) {
+			mkdir(CACHE . 'cacheable');
+		}
+		Cache::config('cacheable', array(
+			'engine' => $this->settings[$model->name]['engine'],
+			'path' => CACHE . 'cacheable' . DS,
+			'duration' => $duration,
+			'prefix' => $model->name . '_' . $type,
+		));
 	}
 
 }
