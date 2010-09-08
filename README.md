@@ -1,14 +1,14 @@
-** Cacheable Behavior
+# Cacheable Behavior
 
 Cacheable is a wrapper method for standard queries. It stores each query under a
 unique key in the cache when performed. 
 
-*** Installation
+## Installation
 
 App_Model or Model:
 <pre><code>var $actsAs = array('Cacheable.Cacheable');</code></pre>
 
-*** Basic Usage
+## Basic Usage
 
 <pre><code>$data = $this->Model->cache($type, [$query = array(), [$options = array()]])</code></pre>
 
@@ -21,7 +21,7 @@ The <code>Model->cache()</code> method takes 3 arguments:
 	- update: if the cache should be updated regardless if it's already set (default false)
 		it's best to use this argument when issuing a Model->delete() or save()
 
-*** Advanced Usage
+## Advanced Usage
 
 You can create custom query methods to be called if you would like to perform complex
 operations to the query data. Even your custom methods will have the data stored uniquely
