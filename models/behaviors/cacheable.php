@@ -11,44 +11,55 @@
  **/
 class CacheableBehavior extends ModelBehavior {
 
-/**
- * Contains configuration settings for use with individual model objects.
- * Individual model settings should be stored as an associative array, 
- * keyed off of the model name.
- *
- * @var array
- * @access public
- * @see Model::$alias
- */
-	var $settings = array();
-
-/**
- * Allows the mapping of preg-compatible regular expressions to public or
- * private methods in this class, where the array key is a /-delimited regular
- * expression, and the value is a class method.  Similar to the functionality of
- * the findBy* / findAllBy* magic methods.
- *
- * @var array
- * @access public
- */
-	var $mapMethods = array();
+	/**
+	 * Contains configuration settings for use with individual model objects.
+	 * Individual model settings should be stored as an associative array, 
+	 * keyed off of the model name.
+	 *
+	 * @var array
+	 * @access public
+	 * @see Model::$alias
+	 */
+	var $_settings = array();
 
 
-/**
- * Initiate Cacheable Behavior
- *
- * @param object $model
- * @param array $config
- * @return void
- * @access public
- */
+	/**
+	 * Initiate Cacheable Behavior
+	 *
+	 * @param object $model
+	 * @param array $config
+	 * @return void
+	 * @access public
+	 */
 	function setup(&$model, $config = array()) {
 		$defaults = array(
 			'engine' => 'File',
 		);
-		$this->settings[$model->name] = array_merge($defaults, $config);
+		$this->_settings[$model->name] = array_merge($defaults, $config);
+		
+		$this->_initialize($model, $options['duration']);
 	}
-
+	
+	/**
+	 * Sets up the cache configurations for cacheable
+	 *
+	 * @param string $model 
+	 * @param string $type 
+	 * @param string $duration 
+	 * @return void
+	 * @author Dean
+	 */
+	protected function _configure(&$model, $duration = '+1 hour') {
+		if (!is_dir(CACHE . 'cacheable')) {
+			mkdir(CACHE . 'cacheable');
+		}
+		Cache::config('cacheable', array(
+			'engine' => $this->_settings[$model->name]['engine'],
+			'path' => CACHE . 'cacheable' . DS,
+			'duration' => $duration,
+			'prefix' => $model->name,
+		));
+	}
 
 	/**
 	 * Checks the cache for query results, if none are found a new query is made
@@ -62,41 +73,49 @@ class CacheableBehavior extends ModelBehavior {
 	 * @return void
 	 * @author Dean Sofer
 	 */
-	public function cache(&$model, $type, $query = array(), $options = array()) {
+	public function cache(&$model, $type, $queryOptions = array(), $options = array()) {
 		$options = array_merge(array(
-			'duration' => '10 years',
+			'duration' => '+1 hour',
 			'update' => false,
 		), $options);
 		
-		$this->__config($model, $type, $options['duration']);
-		
-		$key = Security::hash(serialize($query));
+		$key = $this->generateKey($type, $queryOptions);
 		
 		if ($options['update']) {
-			Cache::delete($key, 'cacheable');
+			$this->deleteCache($key);
 		}
 		
-		if (!$data = Cache::read($key)) {
-			if (method_exists($model, 'cache' . $type)) {
-				$data = call_user_func_array('cache' . $type, $query);
-			} else {
-				$data = $model->find($type, $query);
-			}
-			Cache::write($key, $data, 'cacheable');
+		if (!$data = $this->getCache($key)) {
+			$data = $model->find($type, $queryOptions);
+			$this->setCache($key, $data);
 		}
 		return $data;
 	}
 	
-	private function __config(&$model, $type, $duration = '10 years') {
-		if (!is_dir(CACHE . 'cacheable')) {
-			mkdir(CACHE . 'cacheable');
-		}
-		Cache::config('cacheable', array(
-			'engine' => $this->settings[$model->name]['engine'],
-			'path' => CACHE . 'cacheable' . DS,
-			'duration' => $duration,
-			'prefix' => $model->name . '_' . $type,
-		));
+	/**
+	 * Generates a unique key based on the find type and query parameters
+	 *
+	 * @param string $type 
+	 * @param string $queryOptions 
+	 * @return void
+	 * @author Dean
+	 */
+	public function generateCacheKey($type, $queryOptions = array()) {
+		return Security::hash($type . serialize($queryOptions));
 	}
+	
+	public function deleteCache($key) {
+		return Cache::delete($key, 'cacheable');
+	}
+	
+	public function getCache($key) {
+		return Cache::read($key, 'cacheable');
+	}
+	
+	public function setCache($key, $data) {
+		return Cache::write($key, $data, 'cacheable');
+	}
+	
+	
 
 }
