@@ -34,10 +34,11 @@ class CacheableBehavior extends ModelBehavior {
 	function setup(&$model, $config = array()) {
 		$defaults = array(
 			'engine' => 'File',
+			'duration' => '+1 hour',
 		);
 		$this->_settings[$model->name] = array_merge($defaults, $config);
 		
-		$this->_initialize($model, $options['duration']);
+		$this->_configure($model, $this->_settings[$model->name]['duration']);
 	}
 	
 	/**
@@ -49,9 +50,12 @@ class CacheableBehavior extends ModelBehavior {
 	 * @return void
 	 * @author Dean
 	 */
-	protected function _configure(&$model, $duration = '+1 hour') {
+	protected function _configure(&$model, $duration = null) {
 		if (!is_dir(CACHE . 'cacheable')) {
 			mkdir(CACHE . 'cacheable');
+		}
+		if (!$duration) {
+			$duration = $this->_settings[$model->name]['duration'];
 		}
 		Cache::config('cacheable', array(
 			'engine' => $this->_settings[$model->name]['engine'],
@@ -75,7 +79,7 @@ class CacheableBehavior extends ModelBehavior {
 	 */
 	public function cache(&$model, $type, $queryOptions = array(), $options = array()) {
 		$options = array_merge(array(
-			'duration' => '+1 hour',
+			'duration' => null,
 			'update' => false,
 		), $options);
 		
