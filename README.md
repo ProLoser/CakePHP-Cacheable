@@ -1,7 +1,16 @@
 # Cacheable Behavior
 
-Cacheable is a wrapper method for standard queries. It stores each query under a
-unique key in the cache when performed. 
+Cacheable is a wrapper method for standard queries. It stores each query result under a
+unique key based on the find type and parameters in the cache when performed. If the 
+cached data already exists, it will use it instead of querying the database again.
+
+Cache is automatically wiped out for a model during  the afterSave and afterDelete of
+that model. You will have to manually clear the cache for deepfinds however.
+
+## Requires
+
+You must have the clear__cache plugin by Ceeram installed in order for this to work.
+The plugin can be found here: https://github.com/ceeram/clear_cache
 
 ## Installation
 
@@ -10,13 +19,17 @@ App_Model or Model:
 
 ## Basic Usage
 
+To use, simply substitute any instance of <code>Model->find()</code> with <code>Model->cache()</code>. That's all there is to it.
+
 <pre><code>$data = $this->Model->cache($type, [$queryOptions = array(), [$options = array()]])</code></pre>
 
-The <code>Model->cache()</code> method takes 3 arguments:
-
-- $type: the type of Model->find() [first, all, list, custom, etc]
-- $queryOptions: the options to pass to the Model->find()
-- $options: the Model->cache() options 
+- $type: the type of <code>Model->find()</code> [first, all, list, custom, etc]
+- $queryOptions: the options to pass to the <code>Model->find()</code>
+- $options: the <code>cache()</code> specific options 
 	- duration: cache duration (default is '1 hour')
-	- update: if the cache should be updated regardless if it's already set (default false)
-		it's best to use this argument when issuing a Model->delete() or save()
+	- update: forces the cached data to refresh (default false)
+	
+## Todo
+
+- **Place deepfind cache into subfolders.** When manually clearing the cache from a related model,
+	this will allow only a subset of the cache to be cleared instead.

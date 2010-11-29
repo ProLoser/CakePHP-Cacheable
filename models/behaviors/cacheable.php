@@ -4,10 +4,11 @@
  * 
  * Stores model queries in cache
  *
- * @package default
- * @author Dean
+ * @package Cacheable
+ * @author Dean Sofer
  * @version $Id$
  * @copyright 
+ * @dependencies Clear_Cache Plugin by Ceeram https://github.com/ceeram/clear_cache
  **/
 class CacheableBehavior extends ModelBehavior {
 
@@ -36,9 +37,9 @@ class CacheableBehavior extends ModelBehavior {
 			'engine' => 'File',
 			'duration' => '+1 hour',
 		);
-		$this->_settings[$model->name] = array_merge($defaults, $config);
+		$this->_settings[$model->alias] = array_merge($defaults, $config);
 		
-		$this->_configure($model, $this->_settings[$model->name]['duration']);
+		$this->_configure($model, $this->_settings[$model->alias]['duration']);
 	}
 	
 	/**
@@ -51,17 +52,22 @@ class CacheableBehavior extends ModelBehavior {
 	 * @author Dean
 	 */
 	protected function _configure(&$model, $duration = null) {
-		if (!is_dir(CACHE . 'cacheable')) {
-			mkdir(CACHE . 'cacheable');
+		if ($this->_settings[$model->alias]['engine'] == 'File') {
+			if (!is_dir(CACHE . 'cacheable')) {
+				mkdir(CACHE . 'cacheable');
+			}
+			if (!is_dir(CACHE . 'cacheable' . DS . $model->alias)) {
+				mkdir(CACHE . 'cacheable' . DS . $model->alias);
+			}
 		}
 		if (!$duration) {
-			$duration = $this->_settings[$model->name]['duration'];
+			$duration = $this->_settings[$model->alias]['duration'];
 		}
 		Cache::config('cacheable', array(
-			'engine' => $this->_settings[$model->name]['engine'],
-			'path' => CACHE . 'cacheable' . DS,
+			'engine' => $this->_settings[$model->alias]['engine'],
+			'path' => CACHE . 'cacheable' . DS . $model->alias . DS,
 			'duration' => $duration,
-			'prefix' => $model->name,
+			'prefix' => '',
 		));
 	}
 
@@ -83,15 +89,15 @@ class CacheableBehavior extends ModelBehavior {
 			'update' => false,
 		), $options);
 		
-		$key = $this->generateKey($type, $queryOptions);
+		$key = $this->generateCacheKey($model, $type, $queryOptions);
 		
 		if ($options['update']) {
-			$this->deleteCache($key);
+			$this->deleteCache($model, $key);
 		}
 		
-		if (!$data = $this->getCache($key)) {
+		if (!$data = $this->getCache($model, $key)) {
 			$data = $model->find($type, $queryOptions);
-			$this->setCache($key, $data);
+			$this->setCache($model, $key, $data);
 		}
 		return $data;
 	}
@@ -104,22 +110,35 @@ class CacheableBehavior extends ModelBehavior {
 	 * @return void
 	 * @author Dean
 	 */
-	public function generateCacheKey($type, $queryOptions = array()) {
-		return Security::hash($type . serialize($queryOptions));
+	public function generateCacheKey(&$model, $type, $queryOptions = array()) {
+		return $type . '_' . Security::hash(serialize($queryOptions));
 	}
 	
-	public function deleteCache($key) {
-		return Cache::delete($key, 'cacheable');
+	public function deleteCache(&$model, $key) {
+		App::import('Libs', 'ClearCache.ClearCache');
+		$ClearCache = new ClearCache();
+		
+		if ($key) {
+			return Cache::delete($model, $key, 'cacheable');
+		} else {
+			return $ClearCache->files('cacheable' . DS . $model->alias);
+		}
 	}
 	
-	public function getCache($key) {
+	public function getCache(&$model, $key) {
 		return Cache::read($key, 'cacheable');
 	}
 	
-	public function setCache($key, $data) {
+	public function setCache(&$model, $key, $data) {
 		return Cache::write($key, $data, 'cacheable');
 	}
 	
+	public function afterSave(&$model, $created) {
+		$this->deleteCache($model);
+	}
 	
+	public function afterDelete(&$model) {
+		$this->deleteCache($model);
+	}
 
 }
