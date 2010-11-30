@@ -114,7 +114,7 @@ class CacheableBehavior extends ModelBehavior {
 		return $type . '_' . Security::hash(serialize($queryOptions));
 	}
 	
-	public function deleteCache(&$model, $key) {
+	public function deleteCache(&$model, $key = null) {
 		App::import('Libs', 'ClearCache.ClearCache');
 		$ClearCache = new ClearCache();
 		
