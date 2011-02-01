@@ -9,7 +9,7 @@ that model. You will have to manually clear the cache for deepfinds however.
 
 ## Requires
 
-You must have the "clear_cache plugin by Ceeram":https://github.com/ceeram/clear_cache installed in order for this to work.
+You must have the [clear_cache plugin by Ceeram](https://github.com/ceeram/clear_cache) installed in order for this to work.
 
 ## Installation
 
