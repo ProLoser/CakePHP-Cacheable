@@ -63,9 +63,7 @@ class CacheableBehavior extends ModelBehavior {
 		if (!$duration) {
 			$duration = $this->_settings[$model->alias]['duration'];
 		}
-		//the cache config name should be unique for each model alias
-		//this fixes a bug where the new settings under the same name would not take
-		Cache::config($model->alias, array(
+		Cache::config('cacheable' . $model->alias, array(
 			'engine' => $this->_settings[$model->alias]['engine'],
 			'path' => CACHE . 'cacheable' . DS . $model->alias . DS,
 			'duration' => $duration,
@@ -113,6 +111,8 @@ class CacheableBehavior extends ModelBehavior {
 	 * @author Dean
 	 */
 	public function generateCacheKey(&$model, $type, $queryOptions = array()) {
+		// Just in case the model gets imported too early
+		App::import('Core', 'Security');
 		return $type . '_' . Security::hash(serialize($queryOptions));
 	}
 	
@@ -121,18 +121,18 @@ class CacheableBehavior extends ModelBehavior {
 		$ClearCache = new ClearCache();
 		
 		if ($key) {
-			return Cache::delete($model, $key, $model->alias);
+			return Cache::delete($model, $key, 'cacheable' . $model->alias);
 		} else {
 			return $ClearCache->files('cacheable' . DS . $model->alias);
 		}
 	}
 	
 	public function getCache(&$model, $key) {
-		return Cache::read($key, $model->alias);
+		return Cache::read($key, 'cacheable' . $model->alias);
 	}
 	
 	public function setCache(&$model, $key, $data) {
-		return Cache::write($key, $data, $model->alias);
+		return Cache::write($key, $data, 'cacheable' . $model->alias);
 	}
 	
 	public function afterSave(&$model, $created) {
