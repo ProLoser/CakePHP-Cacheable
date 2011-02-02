@@ -63,7 +63,9 @@ class CacheableBehavior extends ModelBehavior {
 		if (!$duration) {
 			$duration = $this->_settings[$model->alias]['duration'];
 		}
-		Cache::config('cacheable', array(
+		//the cache config name should be unique for each model alias
+		//this fixes a bug where the new settings under the same name would not take
+		Cache::config($model->alias, array(
 			'engine' => $this->_settings[$model->alias]['engine'],
 			'path' => CACHE . 'cacheable' . DS . $model->alias . DS,
 			'duration' => $duration,
@@ -119,18 +121,18 @@ class CacheableBehavior extends ModelBehavior {
 		$ClearCache = new ClearCache();
 		
 		if ($key) {
-			return Cache::delete($model, $key, 'cacheable');
+			return Cache::delete($model, $key, $model->alias);
 		} else {
 			return $ClearCache->files('cacheable' . DS . $model->alias);
 		}
 	}
 	
 	public function getCache(&$model, $key) {
-		return Cache::read($key, 'cacheable');
+		return Cache::read($key, $model->alias);
 	}
 	
 	public function setCache(&$model, $key, $data) {
-		return Cache::write($key, $data, 'cacheable');
+		return Cache::write($key, $data, $model->alias);
 	}
 	
 	public function afterSave(&$model, $created) {
