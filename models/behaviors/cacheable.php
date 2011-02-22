@@ -23,7 +23,6 @@ class CacheableBehavior extends ModelBehavior {
 	 */
 	var $_settings = array();
 
-
 	/**
 	 * Initiate Cacheable Behavior
 	 *
@@ -95,7 +94,8 @@ class CacheableBehavior extends ModelBehavior {
 			$this->deleteCache($model, $key);
 		}
 		
-		if (!$data = $this->getCache($model, $key)) {
+		$data = $this->getCache($model, $key);
+		if ($data === false) {
 			$data = $model->find($type, $queryOptions);
 			$this->setCache($model, $key, $data);
 		}
@@ -113,7 +113,11 @@ class CacheableBehavior extends ModelBehavior {
 	public function generateCacheKey(&$model, $type, $queryOptions = array()) {
 		// Just in case the model gets imported too early
 		App::import('Core', 'Security');
-		return $type . '_' . Security::hash(serialize($queryOptions));
+		if (isset($model->locale)) {
+			return $model->locale . '_' . $type . '_' . Security::hash(serialize($queryOptions));
+		} else {
+			return $type . '_' . Security::hash(serialize($queryOptions));
+		}
 	}
 	
 	public function deleteCache(&$model, $key = null) {
