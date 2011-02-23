@@ -125,7 +125,7 @@ class CacheableBehavior extends ModelBehavior {
 		$ClearCache = new ClearCache();
 		
 		if ($key) {
-			return Cache::delete($model, $key, 'cacheable' . $model->alias);
+			return Cache::delete($key, 'cacheable' . $model->alias);
 		} else {
 			return $ClearCache->files('cacheable' . DS . $model->alias);
 		}
