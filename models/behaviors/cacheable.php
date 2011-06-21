@@ -35,14 +35,14 @@ class CacheableBehavior extends ModelBehavior {
 		$defaults = array(
 			'engine' => 'File',
 			'duration' => '+1 hour',
+			'configured' => false,
 		);
 		$this->_settings[$model->alias] = array_merge($defaults, $config);
-		
-		$this->_configure($model, $this->_settings[$model->alias]['duration']);
 	}
 	
 	/**
-	 * Sets up the cache configurations for cacheable
+	 * Sets up the cache configurations for cacheable and checks directory existence.
+	 * Runs a maximum of 1 time per model per request to reduce overhead!
 	 *
 	 * @param string $model 
 	 * @param string $type 
@@ -51,23 +51,26 @@ class CacheableBehavior extends ModelBehavior {
 	 * @author Dean
 	 */
 	protected function _configure(&$model, $duration = null) {
-		if ($this->_settings[$model->alias]['engine'] == 'File') {
-			if (!is_dir(CACHE . 'cacheable')) {
-				mkdir(CACHE . 'cacheable');
+		if (!$this->_settings[$model->alias]['configured']) {
+			if ($this->_settings[$model->alias]['engine'] == 'File') {
+				if (!is_dir(CACHE . 'cacheable')) {
+					mkdir(CACHE . 'cacheable');
+				}
+				if (!is_dir(CACHE . 'cacheable' . DS . $model->alias)) {
+					mkdir(CACHE . 'cacheable' . DS . $model->alias);
+				}
 			}
-			if (!is_dir(CACHE . 'cacheable' . DS . $model->alias)) {
-				mkdir(CACHE . 'cacheable' . DS . $model->alias);
+			if (!$duration) {
+				$duration = $this->_settings[$model->alias]['duration'];
 			}
+			Cache::config('cacheable' . $model->alias, array(
+				'engine' => $this->_settings[$model->alias]['engine'],
+				'path' => CACHE . 'cacheable' . DS . $model->alias . DS,
+				'duration' => $duration,
+				'prefix' => '',
+			));
+			$this->_settings[$model->alias]['configured'] = true;
 		}
-		if (!$duration) {
-			$duration = $this->_settings[$model->alias]['duration'];
-		}
-		Cache::config('cacheable' . $model->alias, array(
-			'engine' => $this->_settings[$model->alias]['engine'],
-			'path' => CACHE . 'cacheable' . DS . $model->alias . DS,
-			'duration' => $duration,
-			'prefix' => '',
-		));
 	}
 
 	/**
@@ -121,6 +124,7 @@ class CacheableBehavior extends ModelBehavior {
 	}
 	
 	public function deleteCache(&$model, $key = null) {
+		$this->_configure($model);
 		App::import('Libs', 'ClearCache.ClearCache');
 		$ClearCache = new ClearCache();
 		
@@ -132,10 +136,12 @@ class CacheableBehavior extends ModelBehavior {
 	}
 	
 	public function getCache(&$model, $key) {
+		$this->_configure($model);
 		return Cache::read($key, 'cacheable' . $model->alias);
 	}
 	
 	public function setCache(&$model, $key, $data) {
+		$this->_configure($model);
 		return Cache::write($key, $data, 'cacheable' . $model->alias);
 	}
 	
