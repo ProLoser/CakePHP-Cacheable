@@ -9,7 +9,8 @@
  * @version $Id$
  * @copyright 
  * @dependencies Clear_Cache Plugin by Ceeram https://github.com/ceeram/clear_cache
- **/
+ **/	
+App::uses('Security', 'Utility');
 class CacheableBehavior extends ModelBehavior {
 
 	/**
@@ -115,7 +116,6 @@ class CacheableBehavior extends ModelBehavior {
 	 */
 	public function generateCacheKey(&$model, $type, $queryOptions = array()) {
 		// Just in case the model gets imported too early
-		App::import('Core', 'Security');
 		if (isset($model->locale)) {
 			return $model->locale . '_' . $type . '_' . Security::hash(serialize($queryOptions));
 		} else {
