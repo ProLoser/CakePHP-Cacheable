@@ -125,7 +125,7 @@ class CacheableBehavior extends ModelBehavior {
 	
 	public function deleteCache(&$model, $key = null) {
 		$this->_configure($model);
-		App::import('Libs', 'ClearCache.ClearCache');
+		App::uses('ClearCache', 'ClearCache.Lib');
 		$ClearCache = new ClearCache();
 		
 		if ($key) {
