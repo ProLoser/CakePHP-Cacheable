@@ -32,11 +32,13 @@ class CacheableBehavior extends ModelBehavior {
 	 * @return void
 	 * @access public
 	 */
-	function setup(&$model, $config = array()) {
+	function setup($model, $config = array()) {
 		$defaults = array(
 			'engine' => 'File',
 			'duration' => '+1 hour',
 			'configured' => false,
+			'prefix' => '',
+			'folder' => 'cacheable',
 		);
 		$this->_settings[$model->alias] = array_merge($defaults, $config);
 	}
@@ -51,14 +53,14 @@ class CacheableBehavior extends ModelBehavior {
 	 * @return void
 	 * @author Dean
 	 */
-	protected function _configure(&$model, $duration = null) {
+	protected function _configure($model, $duration = null) {
 		if (!$this->_settings[$model->alias]['configured']) {
 			if ($this->_settings[$model->alias]['engine'] == 'File') {
-				if (!is_dir(CACHE . 'cacheable')) {
-					mkdir(CACHE . 'cacheable');
+				if (!is_dir(CACHE . $this->_settings[$model->alias]['folder'])) {
+					mkdir(CACHE . $this->_settings[$model->alias]['folder']);
 				}
-				if (!is_dir(CACHE . 'cacheable' . DS . $model->alias)) {
-					mkdir(CACHE . 'cacheable' . DS . $model->alias);
+				if (!is_dir(CACHE . $this->_settings[$model->alias]['folder'] . DS . $model->alias)) {
+					mkdir(CACHE . $this->_settings[$model->alias]['folder'] . DS . $model->alias);
 				}
 			}
 			if (!$duration) {
@@ -66,9 +68,9 @@ class CacheableBehavior extends ModelBehavior {
 			}
 			Cache::config('cacheable' . $model->alias, array(
 				'engine' => $this->_settings[$model->alias]['engine'],
-				'path' => CACHE . 'cacheable' . DS . $model->alias . DS,
+				'path' => CACHE . $this->_settings[$model->alias]['folder'] . DS . $model->alias . DS,
 				'duration' => $duration,
-				'prefix' => '',
+				'prefix' => $this->_settings[$model->alias]['prefix'],
 			));
 			$this->_settings[$model->alias]['configured'] = true;
 		}
@@ -86,7 +88,7 @@ class CacheableBehavior extends ModelBehavior {
 	 * @return void
 	 * @author Dean Sofer
 	 */
-	public function cache(&$model, $type, $queryOptions = array(), $options = array()) {
+	public function cache($model, $type, $queryOptions = array(), $options = array()) {
 		$options = array_merge(array(
 			'duration' => null,
 			'update' => false,
@@ -114,7 +116,7 @@ class CacheableBehavior extends ModelBehavior {
 	 * @return void
 	 * @author Dean
 	 */
-	public function generateCacheKey(&$model, $type, $queryOptions = array()) {
+	public function generateCacheKey($model, $type, $queryOptions = array()) {
 		// Just in case the model gets imported too early
 		if (isset($model->locale)) {
 			return $model->locale . '_' . $type . '_' . Security::hash(serialize($queryOptions));
@@ -123,7 +125,7 @@ class CacheableBehavior extends ModelBehavior {
 		}
 	}
 	
-	public function deleteCache(&$model, $key = null) {
+	public function deleteCache($model, $key = null) {
 		$this->_configure($model);
 		App::uses('ClearCache', 'ClearCache.Lib');
 		$ClearCache = new ClearCache();
@@ -131,26 +133,25 @@ class CacheableBehavior extends ModelBehavior {
 		if ($key) {
 			return Cache::delete($key, 'cacheable' . $model->alias);
 		} else {
-			return $ClearCache->files('cacheable' . DS . $model->alias);
+			return $ClearCache->files($this->_settings[$model->alias]['folder'] . DS . $model->alias);
 		}
 	}
 	
-	public function getCache(&$model, $key) {
+	public function getCache($model, $key) {
 		$this->_configure($model);
 		return Cache::read($key, 'cacheable' . $model->alias);
 	}
 	
-	public function setCache(&$model, $key, $data) {
+	public function setCache($model, $key, $data) {
 		$this->_configure($model);
 		return Cache::write($key, $data, 'cacheable' . $model->alias);
 	}
 	
-	public function afterSave(&$model, $created) {
+	public function afterSave($model, $created) {
 		$this->deleteCache($model);
 	}
 	
-	public function afterDelete(&$model) {
+	public function afterDelete($model) {
 		$this->deleteCache($model);
 	}
-
 }
