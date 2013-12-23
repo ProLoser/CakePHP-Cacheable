@@ -32,7 +32,7 @@ class CacheableBehavior extends ModelBehavior {
 	 * @return void
 	 * @access public
 	 */
-	function setup($model, $config = array()) {
+	function setup(Model $model, $config = array()) {
 		$defaults = array(
 			'engine' => 'File',
 			'duration' => '+1 hour',
@@ -146,12 +146,12 @@ class CacheableBehavior extends ModelBehavior {
 		$this->_configure($model);
 		return Cache::write($key, $data, 'cacheable' . $model->alias);
 	}
-	
-	public function afterSave($model, $created) {
+
+	public function afterSave(Model $model, $created, $options = array()) {
 		$this->deleteCache($model);
 	}
-	
-	public function afterDelete($model) {
+
+	public function afterDelete(Model $model) {
 		$this->deleteCache($model);
 	}
 }
